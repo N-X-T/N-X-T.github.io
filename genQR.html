@@ -388,7 +388,7 @@
                     <div class="qrcode-container" id="qrcode"></div>
 
                     <!-- Input which triggers regeneration -->
-                    <input type="text" class="code-input" id="code-value" value="UB957338784"
+                    <input type="text" class="code-input" id="code-value" value="Chạm để thay đổi mã"
                         title="Chạm để thay đổi mã" autocomplete="off" spellcheck="false" />
                 </div>
 
@@ -481,6 +481,10 @@
         }
 
         function showToast() {
+
+
+
+            
             toast.classList.add('show');
             if (toastTimeout) clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => {
