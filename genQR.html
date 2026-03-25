@@ -4,10 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tạo Mã QR & Barcode</title>
-    <!-- Thư viện tạo Barcode & QR Code -->
+    <title>Voucher</title>
+    <!-- Thư viện tạo Barcode & QR Code & Export -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -278,16 +281,19 @@
         .code-input {
             width: 100%;
             text-align: center;
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 500;
             color: #000000;
             background: transparent;
             border: 1px solid transparent;
             border-radius: 8px;
-            padding: 6px;
+            padding: 8px;
             outline: none;
             transition: all 0.2s;
             font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            margin-top: 10px;
         }
 
         .code-input:focus,
@@ -296,7 +302,15 @@
             background: #f2f2f7;
         }
 
-        .copy-btn {
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
             background: #ffffff;
             border: 1px solid #d1d1d6;
             border-radius: 8px;
@@ -315,14 +329,54 @@
             font-family: inherit;
         }
 
-        .copy-btn:active {
+        .action-btn:active {
             background-color: #f2f2f7;
         }
 
-        .copy-btn svg {
+        .action-btn.primary {
+            background: #2c2c2e;
+            color: #ffffff;
+            border-color: #2c2c2e;
+        }
+
+        .action-btn.primary:active {
+            background-color: #1a1a1c;
+        }
+
+        .action-btn svg {
             width: 16px;
             height: 16px;
             stroke-width: 2;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .nav-btn {
+            background: #f2f2f7;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #007aff;
+            cursor: pointer;
+        }
+
+        .nav-btn:disabled {
+            color: #d1d1d6;
+            cursor: not-allowed;
+        }
+
+        #code-counter {
+            font-size: 14px;
+            font-weight: 600;
+            color: #8e8e93;
         }
 
         /* Toast Notification */
@@ -387,20 +441,37 @@
                     <!-- QR Area -->
                     <div class="qrcode-container" id="qrcode"></div>
 
+                    <div class="nav-buttons">
+                        <button id="prev-btn" class="nav-btn">&lt; Trước</button>
+                        <span id="code-counter">0 / 0</span>
+                        <button id="next-btn" class="nav-btn">Tiếp &gt;</button>
+                    </div>
+
                     <!-- Input which triggers regeneration -->
-                    <input type="text" class="code-input" id="code-value" value=""
-                        placeholder="Nhập mã tại đây"="Chạm để thay đổi mã" autocomplete="off" spellcheck="false" />
+                    <textarea class="code-input" id="code-value"
+                        placeholder="Nhập các mã, cách nhau dấu phẩy hoặc xuống dòng" spellcheck="false"></textarea>
                 </div>
 
-                <!-- Copy Button -->
-                <button class="copy-btn" id="copy-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    Sao chép mã
-                </button>
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="action-btn" id="copy-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Sao chép mã
+                    </button>
+                    <button class="action-btn primary" id="download-zip-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Tải Zip
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -413,80 +484,234 @@
         const codeInput = document.getElementById('code-value');
         const qrcodeContainer = document.getElementById('qrcode');
         const toast = document.getElementById('toast');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const codeCounter = document.getElementById('code-counter');
+        const downloadZipBtn = document.getElementById('download-zip-btn');
+
         let qrcodeInstance = null;
         let toastTimeout = null;
+        let codesList = [];
+        let currentIndex = 0;
+
+        function updatePagination() {
+            if (codesList.length <= 1) {
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                codeCounter.textContent = codesList.length === 1 && codesList[0] ? '1 / 1' : '0 / 0';
+            } else {
+                prevBtn.disabled = currentIndex === 0;
+                nextBtn.disabled = currentIndex === codesList.length - 1;
+                codeCounter.textContent = `${currentIndex + 1} / ${codesList.length}`;
+            }
+        }
 
         function generateCodes() {
-            // Trim leading/trailing spaces for barcode logic, or keep if required
-            const val = codeInput.value || ' ';
+            let val = codesList[currentIndex] || '';
+            val = val.trim();
 
             // 1. Generate Barcode
             try {
-                JsBarcode("#barcode", val, {
-                    format: "CODE128",
-                    lineColor: "#000000",
-                    width: 2,
-                    height: 75,
-                    margin: 0,
-                    displayValue: false // Hide default text since we use input
-                });
+                if (val) {
+                    JsBarcode("#barcode", val, {
+                        format: "CODE128",
+                        lineColor: "#000000",
+                        width: 2,
+                        height: 75,
+                        margin: 0,
+                        displayValue: false
+                    });
+                } else {
+                    document.getElementById('barcode').innerHTML = '';
+                    // Placeholder cho barcode
+                    const barcodeSvg = document.getElementById('barcode');
+                    barcodeSvg.style.width = '200px';
+                    barcodeSvg.style.height = '75px';
+                    barcodeSvg.style.backgroundColor = '#f2f2f7';
+                    barcodeSvg.style.borderRadius = '8px';
+                }
             } catch (e) {
-                console.error("Lỗi tạo barcode (ví dụ ký tự không hỗ trợ):", e);
-                // Xoá barcode nếu lỗi
+                console.error("Lỗi tạo barcode:", e);
                 document.getElementById('barcode').innerHTML = '';
+            }
+
+            // Xóa background placeholder nếu có val
+            if (val) {
+                const barcodeSvg = document.getElementById('barcode');
+                if (barcodeSvg.style.backgroundColor) {
+                    barcodeSvg.style.backgroundColor = 'transparent';
+                }
             }
 
             // 2. Generate QR Code
             qrcodeContainer.innerHTML = ''; // Reset
-            qrcodeInstance = new QRCode(qrcodeContainer, {
-                text: val,
-                width: 160,
-                height: 160,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
+            if (val) {
+                qrcodeInstance = new QRCode(qrcodeContainer, {
+                    text: val,
+                    width: 160,
+                    height: 160,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } else {
+                // Placeholder cho QR code
+                const placeholder = document.createElement('div');
+                placeholder.style.width = '160px';
+                placeholder.style.height = '160px';
+                placeholder.style.backgroundColor = '#f2f2f7';
+                placeholder.style.borderRadius = '12px';
+                qrcodeContainer.appendChild(placeholder);
+            }
+        }
+
+        function parseCodes() {
+            const rawValue = codeInput.value;
+            codesList = rawValue.split(/[\n,]+/).map(c => c.trim()).filter(c => c.length > 0);
+
+            if (codesList.length === 0) {
+                codesList = [''];
+            }
+
+            if (currentIndex >= codesList.length) {
+                currentIndex = Math.max(0, codesList.length - 1);
+            }
+
+            updatePagination();
+            generateCodes();
         }
 
         // Khởi tạo mã ban đầu
-        generateCodes();
+        parseCodes();
 
         // Lắng nghe thay đổi khi người dùng nhập liệu
-        codeInput.addEventListener('input', generateCodes);
+        codeInput.addEventListener('input', parseCodes);
 
-        // Xử lý nút sao chép
-        document.getElementById('copy-btn').addEventListener('click', () => {
-            const val = codeInput.value;
-
-            if (navigator.clipboard && window.isSecureContext) {
-                // Sử dụng Clipboard API (hiện đại)
-                navigator.clipboard.writeText(val).then(showToast).catch(fallbackCopy);
-            } else {
-                fallbackCopy();
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updatePagination();
+                generateCodes();
             }
         });
 
-        function fallbackCopy() {
-            // Hiệu ứng bôi đen và copy truyền thống
-            codeInput.select();
-            codeInput.setSelectionRange(0, 99999); // Mobile
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < codesList.length - 1) {
+                currentIndex++;
+                updatePagination();
+                generateCodes();
+            }
+        });
+
+        // Xử lý nút sao chép
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const val = codesList[currentIndex] || '';
+            if (!val) {
+                showToast("Không có mã để sao chép!");
+                return;
+            }
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(val).then(() => showToast("Đã sao chép mã!")).catch(() => fallbackCopy(val));
+            } else {
+                fallbackCopy(val);
+            }
+        });
+
+        function fallbackCopy(text) {
+            const tempInput = document.createElement("input");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            tempInput.setSelectionRange(0, 99999);
             try {
                 document.execCommand('copy');
-                showToast();
+                showToast("Đã sao chép mã!");
             } catch (err) {
                 console.error('Không thể sao chép:', err);
+                showToast("Lỗi khi sao chép!");
             }
-            // Bỏ bôi đen
-            window.getSelection().removeAllRanges();
+            document.body.removeChild(tempInput);
         }
 
-        function showToast() {
+        function showToast(msg) {
+            toast.textContent = msg;
             toast.classList.add('show');
             if (toastTimeout) clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => {
                 toast.classList.remove('show');
             }, 2000);
         }
+
+        // Xử lý nút tải xuống ZIP
+        downloadZipBtn.addEventListener('click', async () => {
+            if (codesList.length === 0 || (codesList.length === 1 && !codesList[0])) {
+                showToast("Vui lòng nhập mã để tải xuống");
+                return;
+            }
+
+            showToast(`Đang tạo file zip cho ${codesList.length} mã...`);
+            downloadZipBtn.disabled = true;
+            downloadZipBtn.style.opacity = '0.5';
+
+            const zip = new JSZip();
+            const voucherCard = document.querySelector('.voucher-card');
+            const borderBox = document.querySelector('.voucher-border-box');
+
+            const originalIndex = currentIndex;
+            const originalTextareaDisplay = codeInput.style.display;
+            const originalNavDisplay = document.querySelector('.nav-buttons').style.display;
+            const originalActionDisplay = document.querySelector('.action-buttons').style.display;
+            const originalMarginBottom = borderBox.style.marginBottom;
+
+            // Ẩn các nút điều hướng và form nhập liệu để không dính vào ảnh chụp
+            codeInput.style.display = 'none';
+            document.querySelector('.nav-buttons').style.display = 'none';
+            document.querySelector('.action-buttons').style.display = 'none';
+            borderBox.style.marginBottom = '0px'; // Bỏ margin để voucher-card cân đối
+
+            try {
+                for (let i = 0; i < codesList.length; i++) {
+                    currentIndex = i;
+                    generateCodes();
+
+                    // Chờ một chút để canvas/svg vẽ xong mã
+                    await new Promise(r => setTimeout(r, 150));
+
+                    const canvas = await html2canvas(voucherCard, {
+                        backgroundColor: '#ffffff',
+                        scale: 2 // Tăng chất lượng ảnh
+                    });
+
+                    const code = codesList[i];
+                    // Tên file theo mã, loại bỏ ký tự không hợp lệ cho tên file
+                    const safeFileName = code.replace(/[^a-z0-9]/gi, '_');
+                    const imgData = canvas.toDataURL("image/png").split('base64,')[1];
+                    zip.file(`${safeFileName}.png`, imgData, { base64: true });
+                }
+
+                showToast("Đang nén file...");
+                const content = await zip.generateAsync({ type: "blob" });
+                saveAs(content, "Vouchers.zip");
+                showToast("Tải xuống hoàn tất!");
+            } catch (err) {
+                console.error("Lỗi tạo zip:", err);
+                showToast("Có lỗi xảy ra khi tạo zip");
+            } finally {
+                // Khôi phục UI
+                codeInput.style.display = originalTextareaDisplay;
+                document.querySelector('.nav-buttons').style.display = originalNavDisplay;
+                document.querySelector('.action-buttons').style.display = originalActionDisplay;
+                borderBox.style.marginBottom = originalMarginBottom;
+
+                currentIndex = originalIndex;
+                updatePagination();
+                generateCodes();
+
+                downloadZipBtn.disabled = false;
+                downloadZipBtn.style.opacity = '1';
+            }
+        });
     </script>
 </body>
 
