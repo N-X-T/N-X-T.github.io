@@ -265,10 +265,22 @@
 
         /* QR container */
         .qrcode-container {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: center;
             padding: 10px;
+        }
+
+        /* Text Code Display */
+        .code-text-display {
+            font-size: 18px;
+            font-weight: 700;
+            color: #000;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            text-align: center;
+            word-break: break-all;
+            min-height: 22px;
         }
 
         #qrcode img,
@@ -441,6 +453,9 @@
                     <!-- QR Area -->
                     <div class="qrcode-container" id="qrcode"></div>
 
+                    <!-- Code Text Area -->
+                    <div class="code-text-display" id="code-text-display"></div>
+
                     <div class="nav-buttons">
                         <button id="prev-btn" class="nav-btn">&lt; Trước</button>
                         <span id="code-counter">0 / 0</span>
@@ -562,6 +577,12 @@
                 placeholder.style.backgroundColor = '#f2f2f7';
                 placeholder.style.borderRadius = '12px';
                 qrcodeContainer.appendChild(placeholder);
+            }
+            
+            // 3. Hiển thị chữ mã voucher
+            const codeTextDisplay = document.getElementById('code-text-display');
+            if (codeTextDisplay) {
+                codeTextDisplay.textContent = val;
             }
         }
 
